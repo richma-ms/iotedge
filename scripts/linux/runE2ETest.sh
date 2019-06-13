@@ -57,7 +57,9 @@ function get_iotedge_quickstart_artifact_file() {
 
 function get_iotedged_artifact_folder() {
     local path
-    if [ "$image_architecture_label" = 'amd64' ]; then
+    if [ "$USE_RELEASE_PACKAGE" = '1' ]; then
+        path=''
+    elif [ "$image_architecture_label" = 'amd64' ]; then
         path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu-amd64"
     elif [ "$image_architecture_label" = 'arm64v8' ]; then
         path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu16.04-aarch64"
@@ -95,8 +97,11 @@ function prepare_test_from_artifacts() {
     rm -rf "$working_folder"
     mkdir -p "$working_folder"
 
-    declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
-    iotedge_package="${pkg_list[*]}"
+    iotedge_package=''
+    if [[ "$iotedged_artifact_folder" -ne '' ]]; then
+        declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
+        iotedge_package="${pkg_list[*]}"
+    fi
     echo "iotedge_package=$iotedge_package"
 
     echo 'Extract quickstart to working folder'
@@ -316,9 +321,6 @@ function process_args() {
         elif [ $saveNextArg -eq 22 ]; then
             MQTT_SETTINGS_ENABLED="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 23 ]; then
-            LONG_HAUL_PROTOCOL_HEAD="$arg"
-            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -344,7 +346,7 @@ function process_args() {
                 '-loadGen4TransportType' ) saveNextArg=20;;
                 '-amqpSettingsEnabled' ) saveNextArg=21;;
                 '-mqttSettingsEnabled' ) saveNextArg=22;;
-                '-longHaulProtocolHead' ) saveNextArg=23;;
+                '-useReleasePackage' ) USE_RELEASE_PACKAGE='1';;
                 * ) usage;;
             esac
         fi
@@ -838,7 +840,7 @@ function usage() {
     echo ' -loadGen4TransportType          Transport type for LoadGen4 for stress test. Default is mqtt.'
     echo ' -amqpSettingsEnabled            Enable amqp protocol head in Edge Hub.'
     echo ' -mqttSettingsEnabled            Enable mqtt protocol head in Edge Hub.'
-    echo ' -longHaulProtocolHead           Specify which protocol head is used to run long haul test for ARM32v7 device. Valid values are amqp (default) and mqtt.'
+    echo ' -useReleasePackage              use latest release package instead of offline package.'
     exit 1;
 }
 
@@ -846,7 +848,6 @@ process_args "$@"
 
 CONTAINER_REGISTRY="${CONTAINER_REGISTRY:edgebuilds.azurecr.io}"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
-LONG_HAUL_PROTOCOL_HEAD="${LONG_HAUL_PROTOCOL_HEAD:-amqp}"
 SNITCH_BUILD_NUMBER="${SNITCH_BUILD_NUMBER:-1.1}"
 LOADGEN1_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-amqp}"
 LOADGEN2_TRANSPORT_TYPE="${LOADGEN2_TRANSPORT_TYPE:-amqp}"

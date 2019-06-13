@@ -84,7 +84,10 @@
         Enable amqp protocol head in Edge Hub.
 
     .PARAMETER MqttSettingsEnabled
-        Enable mqtt protocol head in Edge Hub. 
+        Enable mqtt protocol head in Edge Hub.
+
+    .PARAMETER UseReleasePackage
+        Use latest iotedged release package and given image artifact build number to run tests.
 
     .EXAMPLE
         .\Run-E2ETest.ps1
@@ -194,6 +197,8 @@ Param (
     [ValidateSet("true", "false")]
     [string] $MqttSettingsEnabled = "true",
 
+    [switch] $UseReleasePackage,
+
     [switch] $BypassEdgeInstallation
 
 )
@@ -204,6 +209,11 @@ $global:ProgressPreference = "SilentlyContinue"
 
 Function AppendInstallationOption([string] $testCommand)
 {
+    If ($UseReleasePackage)
+    {
+        Return $testCommand
+    }
+
     If (Test-Path (Join-Path $PackagesWorkingFolder "*"))
     {
         Return $testCommand + " --offline-installation-path `"$PackagesWorkingFolder`""
@@ -287,7 +297,11 @@ Function PrepareTestFromArtifacts
     PrintHighlightedMessage "Copy artifact files to $TestWorkingFolder"
 
     # IoT Edgelet
-    If (Test-Path $PackagesArtifactFolder -PathType Container)
+    If ($UseReleasePackage)
+    {
+        Write-Host "Use latest release package."
+    }
+    ElseIf (Test-Path $PackagesArtifactFolder -PathType Container)
     {
         Write-Host "Copy packages artifact from $PackagesArtifactFolder to $PackagesWorkingFolder"
         Copy-Item $PackagesArtifactFolder -Destination $PackagesWorkingFolder -Recurse -Force
@@ -295,7 +309,7 @@ Function PrepareTestFromArtifacts
     }
     ElseIf (Test-Path $IoTEdgedArtifactFolder -PathType Container)
     {
-        Write-Host "Copy packages artifact from $IoTEdgedArtifactFolder to $PackagesWorkingFolder"
+        Write-Host "Copy packages artifact from $IoTEdgedArtifactFolder to $IoTEdgedWorkingFolder"
         Copy-Item $IoTEdgedArtifactFolder -Destination $IoTEdgedWorkingFolder -Recurse -Force
         Copy-Item $InstallationScriptPath -Destination $IoTEdgedWorkingFolder -Force
     }
@@ -376,7 +390,7 @@ Function PrepareTestFromArtifacts
 
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.EventHubConnectionString>',$EventHubConnectionString) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.MessageFrequency>',$LoadGenMessageFrequency) | Set-Content $DeploymentWorkingFilePath
-                $escapedBuildId= $ArtifactImageBuildNumber -replace "\.",""
+                $escapedBuildId = $ArtifactImageBuildNumber -replace "\.",""
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.AlertUrl>',$SnitchAlertUrl) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildNumber>',$SnitchBuildNumber) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildId>',"$SnitchBuildNumber-$(GetImageArchitectureLabel)-linux-$escapedBuildId") | Set-Content $DeploymentWorkingFilePath
@@ -1167,9 +1181,9 @@ Function ValidateTestParameters
 {
     PrintHighlightedMessage "Validate test parameters for $TestName"
 
-    If (-Not((Test-Path (Join-Path $IoTEdgedArtifactFolder "*")) -Or (Test-Path (Join-Path $PackagesArtifactFolder "*"))))
+    If (-Not($UseReleasePackage) -And -Not(Test-Path (Join-Path $IoTEdgedArtifactFolder "*")) -And -Not(Test-Path (Join-Path $PackagesArtifactFolder "*")))
     {
-        Throw "Either $IoTEdgedArtifactFolder or $PackagesArtifactFolder should exist"
+        Throw "Either $IoTEdgedArtifactFolder or $PackagesArtifactFolder should exist; or use release package flag."
     }
 
     $validatingItems = @(
