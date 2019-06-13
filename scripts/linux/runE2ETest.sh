@@ -750,7 +750,10 @@ function validate_test_parameters() {
     local required_folders=()
 
     required_files+=("$iotedge_quickstart_artifact_file")
-    required_folders+=("$iotedged_artifact_folder")
+    
+    if [ "$USE_RELEASE_PACKAGE" -ne '1' ]; then 
+        required_folders+=("$iotedged_artifact_folder")
+    fi
 
     case "${TEST_NAME,,}" in
         'tempsensor')
@@ -840,13 +843,13 @@ function usage() {
     echo ' -loadGen4TransportType          Transport type for LoadGen4 for stress test. Default is mqtt.'
     echo ' -amqpSettingsEnabled            Enable amqp protocol head in Edge Hub.'
     echo ' -mqttSettingsEnabled            Enable mqtt protocol head in Edge Hub.'
-    echo ' -useReleasePackage              use latest release package instead of offline package.'
+    echo ' -useReleasePackage              Use latest release package instead of offline package.'
     exit 1;
 }
 
 process_args "$@"
 
-CONTAINER_REGISTRY="${CONTAINER_REGISTRY:edgebuilds.azurecr.io}"
+CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
 SNITCH_BUILD_NUMBER="${SNITCH_BUILD_NUMBER:-1.1}"
 LOADGEN1_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-amqp}"
