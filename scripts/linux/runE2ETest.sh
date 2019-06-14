@@ -98,7 +98,7 @@ function prepare_test_from_artifacts() {
     mkdir -p "$working_folder"
 
     iotedge_package=''
-    if [[ "$iotedged_artifact_folder" -ne '' ]]; then
+    if [[ "$iotedged_artifact_folder" != '' ]]; then
         declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
         iotedge_package="${pkg_list[*]}"
     fi
@@ -751,7 +751,7 @@ function validate_test_parameters() {
 
     required_files+=("$iotedge_quickstart_artifact_file")
     
-    if [ "$USE_RELEASE_PACKAGE" -ne '1' ]; then 
+    if [ "$USE_RELEASE_PACKAGE" != '1' ]; then 
         required_folders+=("$iotedged_artifact_folder")
     fi
 
