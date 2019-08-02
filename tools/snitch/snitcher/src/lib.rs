@@ -33,7 +33,7 @@ use http::Uri;
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Client as HyperClient, Method, Request};
 use hyper_tls::HttpsConnector;
-use iotedge::{List, Logs};
+use iotedge::{List};
 use log::{debug, error, info};
 use report::{MessageAnalysis, Report};
 use serde_json::Value as JsonValue;
@@ -243,28 +243,28 @@ pub fn get_module_logs(
 
     debug!("Listing docker containers");
     let mut list_result = String::new();
-    let result = List::new(module_client, BufWriter::new(list_result.as_mut_vec())).execute();
-
-    result.and_then(move |result| {
-        result.map(|r| {
-            Ok(()) => {
-                debug!("Get logs for docker containers");
-                ReaderBuilder::new()
-                    .delimiter(b'\t')
-                    .from_reader(list_result.as_bytes())
-                    .records()
-                    .filter(|c| &c[1] != "created")
-                    .map(|container| {
-                        debug!("Getting logs for container {}", &container[0]);
-                        Logs::new(&container[0], LogOptions::new(), client)
-                            .execute()
-                            .and_then(|logs| {
-                                (&container[0], logs.unwrap_or_else(|| "<no logs>".to_string()))
-                            })
-                    })
-            }
+    List::new(module_client, BufWriter::new(list_result.as_mut_vec()))
+        .execute()
+        .then(move |result| {
+            result.map(|r| {
+                Ok(()) => {
+                    debug!("Get logs for docker containers");
+                    ReaderBuilder::new()
+                        .delimiter(b'\t')
+                        .from_reader(list_result.as_bytes())
+                        .records()
+                        .filter(|c| &c[1] != "created")
+                        .map(|container| {
+                            debug!("Getting logs for container {}", &container[0]);
+                            Logs::new(&container[0], LogOptions::new(), module_client)
+                                .execute()
+                                .and_then(|logs| {
+                                    //(&container[0], logs.unwrap_or_else(|| "<no logs>".to_string()))
+                                })
+                        })
+                }
         });
-    });
+});
     
 /*     UrlConnector::new(settings.management_uri())
         .map_err(Error::from)

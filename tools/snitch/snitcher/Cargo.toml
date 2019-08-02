@@ -12,8 +12,8 @@ bytes = "0.4"
 byteorder = "1.2"
 chrono = { version = "0.4", features = ["serde"] }
 csv = "1.1.1"
-edgelet-http-mgmt = { git = "https://github.com/azure/iotedge", rev = "a742e1e9f8c764b9fc4474b46164831dae0b0456" }
-iotedge = { git = "https://github.com/azure/iotedge", rev = "a742e1e9f8c764b9fc4474b46164831dae0b0456" }
+edgelet-http-mgmt = { git = "https://github.com/azure/iotedge", rev = "63446b4a724f1ef9ca9030a3826ff96e69d03327" }
+iotedge = { git = "https://github.com/azure/iotedge", rev = "63446b4a724f1ef9ca9030a3826ff96e69d03327" }
 env_logger = "0.5"
 futures = "0.1"
 hex = "0.3"

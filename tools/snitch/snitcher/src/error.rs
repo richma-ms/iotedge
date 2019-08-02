@@ -40,7 +40,6 @@ impl Error {
 pub enum ErrorKind {
     Azure(String),
     Connect(String),
-    EdgeletHttpError(EdgeletHttpError),
     Env(String),
     Hex(FromHexError),
     Http(HttpError),
