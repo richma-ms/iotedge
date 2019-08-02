@@ -15,8 +15,8 @@ use serde_derive::Deserialize;
 
 mod check;
 mod error;
-mod list;
-mod logs;
+pub mod list;
+pub mod logs;
 mod restart;
 mod unknown;
 mod version;
