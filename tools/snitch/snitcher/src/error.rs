@@ -9,7 +9,6 @@ use std::str::{self, Utf8Error};
 
 use azure_sdk_for_rust::core::errors::AzureError;
 use backtrace::Backtrace;
-use edgelet_http::Error as EdgeletHttpError;
 use hex::FromHexError;
 use http::Error as HttpError;
 use hyper::{Error as HyperError, StatusCode as HyperStatusCode};
@@ -153,11 +152,5 @@ impl From<FromHexError> for Error {
 impl From<Utf8Error> for Error {
     fn from(err: Utf8Error) -> Error {
         Error::new(ErrorKind::Utf8(err))
-    }
-}
-
-impl From<EdgeletHttpError> for Error {
-    fn from(err: EdgeletHttpError) -> Error {
-        Error::new(ErrorKind::EdgeletHttpError(err))
     }
 }

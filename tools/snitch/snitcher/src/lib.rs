@@ -9,6 +9,7 @@ pub mod error;
 pub mod report;
 pub mod settings;
 
+use std::io::BufWriter;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
@@ -23,8 +24,7 @@ use azure_sdk_for_rust::storage::container::PublicAccess;
 use bytes::{BufMut, Bytes};
 use chrono::Utc;
 use connect::HyperClientService;
-use docker::{Container, DockerClient};
-use edgelet_http::UrlConnector;
+use edgelet_http_mgmt::ModuleClient;
 use error::Error;
 use futures::future::{self, loop_fn, Either, Loop};
 use futures::{Future, IntoFuture, Stream};
@@ -33,6 +33,7 @@ use http::Uri;
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Client as HyperClient, Method, Request};
 use hyper_tls::HttpsConnector;
+use iotedge::{List, Logs};
 use log::{debug, error, info};
 use report::{MessageAnalysis, Report};
 use serde_json::Value as JsonValue;
@@ -92,11 +93,11 @@ pub fn do_report(settings: Settings) -> impl Future<Item = (), Error = Error> + 
                 info!("Fetched module logs.");
 
                 // add each log as a file into the report
-                for (container, logs) in &module_logs {
+                for (container_name, logs) in &module_logs {
                     report
                         .lock()
                         .unwrap()
-                        .add_file(&format!("./{}.log", container.name()), logs.as_bytes());
+                        .add_file(&format!("./{}.log", container_name), logs.as_bytes());
                 }
 
                 // write all the files in the report into blob storage
@@ -236,9 +237,36 @@ pub fn upload_file(
 
 pub fn get_module_logs(
     settings: &Settings,
-) -> impl Future<Item = Vec<(Container, String)>, Error = Error> + Send {
+) -> impl Future<Item = Vec<(String, String)>, Error = Error> + Send {
     info!("Fetching module logs");
-    UrlConnector::new(settings.docker_url())
+    let module_client = ModuleClient::new(settings.management_uri()).expect("Failed to instantiate module client");
+
+    debug!("Listing docker containers");
+    let mut list_result = String::new();
+    let result = List::new(module_client, BufWriter::new(list_result.as_mut_vec())).execute();
+
+    result.and_then(move |result| {
+        result.map(|r| {
+            Ok(()) => {
+                debug!("Get logs for docker containers");
+                ReaderBuilder::new()
+                    .delimiter(b'\t')
+                    .from_reader(list_result.as_bytes())
+                    .records()
+                    .filter(|c| &c[1] != "created")
+                    .map(|container| {
+                        debug!("Getting logs for container {}", &container[0]);
+                        Logs::new(&container[0], LogOptions::new(), client)
+                            .execute()
+                            .and_then(|logs| {
+                                (&container[0], logs.unwrap_or_else(|| "<no logs>".to_string()))
+                            })
+                    })
+            }
+        });
+    });
+    
+/*     UrlConnector::new(settings.management_uri())
         .map_err(Error::from)
         .map(|connector| {
             let docker_client = client::Client::new(
@@ -250,7 +278,7 @@ pub fn get_module_logs(
                         .keep_alive(false)
                         .build(connector),
                 ),
-                settings.docker_url().clone(),
+                settings.management_uri().clone(),
             );
             let docker = DockerClient::new(docker_client);
             let docker_copy = docker.clone();
@@ -279,7 +307,7 @@ pub fn get_module_logs(
 
             Either::A(fut)
         })
-        .unwrap_or_else(|err| Either::B(future::err(err)))
+        .unwrap_or_else(|err| Either::B(future::err(err))) */
 }
 
 pub fn fetch_message_analysis(
