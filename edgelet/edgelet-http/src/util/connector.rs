@@ -26,6 +26,7 @@ use hyper_named_pipe::{PipeConnector, Uri as PipeUri};
 use hyperlocal::{UnixConnector, Uri as HyperlocalUri};
 #[cfg(windows)]
 use hyperlocal_windows::{UnixConnector, Uri as HyperlocalUri};
+use log::debug;
 use url::{ParseError, Url};
 
 use edgelet_core::UrlExt;
@@ -54,7 +55,9 @@ impl UrlConnector {
                 let file_path = url
                     .to_uds_file_path()
                     .map_err(|_| ErrorKind::InvalidUrl(url.to_string()))?;
+                debug!("urlconnector cp1: {:?}", file_path);
                 if socket_file_exists(&file_path) {
+                    debug!("urlconnector cp2");
                     Ok(UrlConnector::Unix(UnixConnector::new()))
                 } else {
                     Err(ErrorKind::InvalidUrlWithReason(
