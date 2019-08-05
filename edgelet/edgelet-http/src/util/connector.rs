@@ -52,6 +52,7 @@ impl UrlConnector {
             PIPE_SCHEME => Ok(UrlConnector::Pipe(PipeConnector)),
 
             UNIX_SCHEME => {
+                debug!("urlconnector cp0: {:?}", url);
                 let file_path = url
                     .to_uds_file_path()
                     .map_err(|_| ErrorKind::InvalidUrl(url.to_string()))?;
