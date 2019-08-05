@@ -30,6 +30,7 @@ pub struct ModuleClient {
 
 impl ModuleClient {
     pub fn new(url: &Url) -> Result<Self, Error> {
+        debug!("checkpoin0: {:?}", url);
         let client = Client::builder()
             .build(UrlConnector::new(url).context(ErrorKind::InitializeModuleClient)?);
         debug!("checkpoin1");
