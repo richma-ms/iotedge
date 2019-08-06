@@ -52,13 +52,13 @@ impl UrlConnector {
             PIPE_SCHEME => Ok(UrlConnector::Pipe(PipeConnector)),
 
             UNIX_SCHEME => {
-                debug!("urlconnector cp0: {:?}", url);
+                info!("urlconnector cp0: {:?}", url);
                 let file_path = url
                     .to_uds_file_path()
                     .map_err(|_| ErrorKind::InvalidUrl(url.to_string()))?;
-                debug!("urlconnector cp1: {:?}", file_path);
+                info!("urlconnector cp1: {:?}", file_path);
                 if socket_file_exists(&file_path) {
-                    debug!("urlconnector cp2");
+                    info!("urlconnector cp2");
                     Ok(UrlConnector::Unix(UnixConnector::new()))
                 } else {
                     Err(ErrorKind::InvalidUrlWithReason(
