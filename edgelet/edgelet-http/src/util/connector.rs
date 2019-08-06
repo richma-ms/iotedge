@@ -26,7 +26,7 @@ use hyper_named_pipe::{PipeConnector, Uri as PipeUri};
 use hyperlocal::{UnixConnector, Uri as HyperlocalUri};
 #[cfg(windows)]
 use hyperlocal_windows::{UnixConnector, Uri as HyperlocalUri};
-use log::debug;
+use log::info;
 use url::{ParseError, Url};
 
 use edgelet_core::UrlExt;

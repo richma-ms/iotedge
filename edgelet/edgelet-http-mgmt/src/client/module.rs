@@ -10,7 +10,7 @@ use futures::future::{self, FutureResult};
 use futures::prelude::*;
 use futures::stream;
 use hyper::{Body, Chunk as HyperChunk, Client};
-use log::debug;
+use log::info;
 use management::apis::client::APIClient;
 use management::apis::configuration::Configuration;
 use management::models::{Config, ModuleDetails as HttpModuleDetails};
@@ -30,20 +30,20 @@ pub struct ModuleClient {
 
 impl ModuleClient {
     pub fn new(url: &Url) -> Result<Self, Error> {
-        debug!("checkpoin0: {:?}", url);
+        info!("checkpoin0: {:?}", url);
         let client = Client::builder()
             .build(UrlConnector::new(url).context(ErrorKind::InitializeModuleClient)?);
-        debug!("checkpoin1");
+        info!("checkpoin1");
         let base_path = url
             .to_base_path()
             .context(ErrorKind::InitializeModuleClient)?;
-        debug!("checkpoin2: {:?}", base_path);
+        info!("checkpoin2: {:?}", base_path);
         let mut configuration = Configuration::new(client);
         configuration.base_path = base_path
             .to_str()
             .ok_or(ErrorKind::InitializeModuleClient)?
             .to_string();
-        debug!("checkpoin3");
+        info!("checkpoin3");
         let scheme = url.scheme().to_string();
         configuration.uri_composer = Box::new(move |base_path, path| {
             Ok(UrlConnector::build_hyper_uri(&scheme, base_path, path)?)
