@@ -32,16 +32,16 @@ impl ModuleClient {
     pub fn new(url: &Url) -> Result<Self, Error> {
         info!("checkpoin0: {:?}", url);
         let client = Client::builder()
-            .build(UrlConnector::new(url).context(ErrorKind::InitializeModuleClient)?);
+            .build(UrlConnector::new(url).map_err(|err| ErrorKind::InitializeModuleClient(err.to_string()))?);
         info!("checkpoin1");
         let base_path = url
             .to_base_path()
-            .context(ErrorKind::InitializeModuleClient)?;
+            .map_err(|err| ErrorKind::InitializeModuleClient(err.to_string()))?;
         info!("checkpoin2: {:?}", base_path);
         let mut configuration = Configuration::new(client);
         configuration.base_path = base_path
             .to_str()
-            .ok_or(ErrorKind::InitializeModuleClient)?
+            .ok_or(ErrorKind::InitializeModuleClient("base path error".to_string()))?
             .to_string();
         info!("checkpoin3");
         let scheme = url.scheme().to_string();

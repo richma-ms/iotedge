@@ -47,6 +47,7 @@ pub enum UrlConnector {
 
 impl UrlConnector {
     pub fn new(url: &Url) -> Result<Self, Error> {
+        info!("urlconnector head: {:?}", url);
         match url.scheme() {
             #[cfg(windows)]
             PIPE_SCHEME => Ok(UrlConnector::Pipe(PipeConnector)),

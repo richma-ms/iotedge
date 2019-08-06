@@ -30,8 +30,8 @@ pub enum ErrorKind {
     #[fail(display = "{}", _0)]
     IdentityOperation(IdentityOperation),
 
-    #[fail(display = "Could not initialize module client")]
-    InitializeModuleClient,
+    #[fail(display = "Could not initialize module client: {:?}", _0)]
+    InitializeModuleClient(String),
 
     #[fail(display = "Invalid API version {:?}", _0)]
     InvalidApiVersion(String),
