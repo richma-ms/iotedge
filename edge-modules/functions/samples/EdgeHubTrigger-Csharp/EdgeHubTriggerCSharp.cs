@@ -17,6 +17,8 @@ namespace Functions.Samples
             [EdgeHubTrigger("input1")] Message messageReceived,
             [EdgeHub(OutputName = "output1")] IAsyncCollector<Message> output)
         {
+            Console.WriteLine($"FilterMessageAndSendMessage called, seq {messageReceived.SequenceNumber}, message id {messageReceived.MessageId}.");
+
             const int defaultTemperatureThreshold = 19;
             byte[] messageBytes = messageReceived.GetBytes();
             var messageString = Encoding.UTF8.GetString(messageBytes);
@@ -32,9 +34,12 @@ namespace Functions.Samples
                     filteredMessage.Properties.Add(prop.Key, prop.Value);
                 }
 
+                Console.WriteLine($"message is going to sent with temperature {messageBody.Machine.Temperature}");
                 filteredMessage.Properties.Add("MessageType", "Alert");
                 await output.AddAsync(filteredMessage);
             }
+
+            Console.WriteLine($"FilterMessageAndSendMessage completed, seq {messageReceived.SequenceNumber}, message id {messageReceived.MessageId}.");
         }
 
         public class Ambient

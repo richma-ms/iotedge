@@ -19,6 +19,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub.Config
     {
         public void Initialize(ExtensionConfigContext context)
         {
+            Console.WriteLine("EdgeHubExtensionConfigProvider.Initialize called.");
+
             if (context == null)
             {
                 throw new ArgumentNullException(nameof(context));

@@ -21,6 +21,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 
         public async Task<ITriggerBinding> TryCreateAsync(TriggerBindingProviderContext context)
         {
+            Console.WriteLine("EdgeHubTriggerBindingProvider.TryCreateAsync called");
+
             if (context == null)
             {
                 throw new ArgumentNullException(nameof(context));
@@ -54,11 +56,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
                     return v;
                 });
 
+            Console.WriteLine("EdgeHubTriggerBindingProvider.TryCreateAsync finished");
+
             return triggerBinding;
         }
 
         async Task TrySetEventDefaultHandlerAsync()
         {
+            Console.WriteLine("TrySetEventDefaultHandlerAsync called");
             if (this.moduleClient != null)
             {
                 return;
@@ -66,19 +71,24 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 
             this.moduleClient = await ModuleClientCache.Instance.GetOrCreateAsync();
             await this.moduleClient.SetMessageHandlerAsync(this.FunctionsMessageHandler, null);
+            Console.WriteLine("TrySetEventDefaultHandlerAsync finished");
         }
 
         async Task<MessageResponse> FunctionsMessageHandler(Message message, object userContext)
         {
             byte[] payload = message.GetBytes();
+            Console.WriteLine("FunctionsMessageHandler started.");
+
             if (this.receivers.TryGetValue(message.InputName.ToLowerInvariant(), out IList<EdgeHubMessageProcessor> functionReceivers))
             {
                 foreach (EdgeHubMessageProcessor edgeHubTriggerBinding in functionReceivers)
                 {
+                    Console.WriteLine("FunctionsMessageHandler.TriggerMessage called.");
                     await edgeHubTriggerBinding.TriggerMessage(Utils.GetMessageCopy(payload, message), userContext);
                 }
             }
 
+            Console.WriteLine("FunctionsMessageHandler finished.");
             return MessageResponse.Completed;
         }
     }
