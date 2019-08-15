@@ -76,8 +76,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 
         async Task<MessageResponse> FunctionsMessageHandler(Message message, object userContext)
         {
-            byte[] payload = message.GetBytes();
             Console.WriteLine("FunctionsMessageHandler started.");
+            byte[] payload = message.GetBytes();
 
             if (this.receivers.TryGetValue(message.InputName.ToLowerInvariant(), out IList<EdgeHubMessageProcessor> functionReceivers))
             {

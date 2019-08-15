@@ -5,6 +5,7 @@ namespace Functions.Samples
     using System.Collections.Generic;
     using System.Text;
     using System.Threading.Tasks;
+    using Functions.Samples.Diagnostics.Tracing;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Extensions.EdgeHub;
@@ -12,6 +13,9 @@ namespace Functions.Samples
 
     public static class EdgeHubSamples
     {
+        // ReSharper disable once UnusedMember.Local
+        private static readonly ConsoleEventListener Listener = new ConsoleEventListener("Microsoft-Azure-");
+
         [FunctionName("EdgeHubTrigger-CSharp")]
         public static async Task FilterMessageAndSendMessage(
             [EdgeHubTrigger("input1")] Message messageReceived,
