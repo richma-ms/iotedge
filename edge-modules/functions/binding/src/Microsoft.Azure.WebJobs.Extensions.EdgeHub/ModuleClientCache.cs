@@ -29,6 +29,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
             await this.asyncLock.WaitAsync();
             try
             {
+                Console.WriteLine("ModuleClientCache.GetOrCreateAsync called.");
                 if (this.client == null)
                 {
                     var retryPolicy = new RetryPolicy(TimeoutErrorDetectionStrategy, TransientRetryStrategy);
@@ -41,6 +42,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
                         }
                     };
                     this.client = await retryPolicy.ExecuteAsync(() => this.CreateModuleClient());
+
+                    Console.WriteLine("ModuleClientCache.GetOrCreateAsync completed.");
                 }
 
                 return this.client;
@@ -53,7 +56,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 
         async Task<ModuleClient> CreateModuleClient()
         {
-            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(TransportType.Mqtt_Tcp_Only);
+            if (!Enum.TryParse(Environment.GetEnvironmentVariable("TransportType"), true, out TransportType transportType))
+            {
+                transportType = TransportType.Mqtt_Tcp_Only;
+            }
+
+            Console.WriteLine($"ModuleClientCache.CreateModuleClient with transport type {transportType}");
+            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(transportType);
 
             moduleClient.ProductInfo = "Microsoft.Azure.WebJobs.Extensions.EdgeHub";
             return moduleClient;
