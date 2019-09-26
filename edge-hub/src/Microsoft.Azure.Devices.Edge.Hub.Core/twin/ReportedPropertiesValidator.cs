@@ -79,7 +79,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                 // So we're also reserving # for service side usage.
                 if (char.IsControl(ch) || ch == '.' || ch == '$' || ch == '#' || char.IsWhiteSpace(ch))
                 {
-                    throw new InvalidOperationException($"Property name {name} contains invalid character '{ch}'");
+                    // Properties prefixed with "$iotin:" are valid for PnP devices/modules
+                    if (ch != '$' || !name.StartsWith("$iotin:"))
+                    {
+                        throw new InvalidOperationException($"Property name {name} contains invalid character '{ch}'");
+                    }
                 }
             }
         }
