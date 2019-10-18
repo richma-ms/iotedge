@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using App.Metrics;
@@ -12,7 +13,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
     using Nito.AsyncEx;
     using static System.FormattableString;
     using AsyncLock = Microsoft.Azure.Devices.Edge.Util.Concurrency.AsyncLock;
@@ -23,6 +27,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         readonly IMessageStore messageStore;
         readonly Task sendMessageTask;
         readonly AsyncManualResetEvent hasMessagesInQueue = new AsyncManualResetEvent(true);
+        readonly AsyncManualResetEvent messageQueueDrained = new AsyncManualResetEvent(true);
         readonly ICheckpointer checkpointer;
         readonly AsyncEndpointExecutorOptions options;
         readonly EndpointExecutorFsm machine;
@@ -57,15 +62,33 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     throw new InvalidOperationException($"Endpoint executor for endpoint {this.Endpoint} is closed.");
                 }
 
-                using (MetricsV0.StoreLatency(this.Endpoint.Id))
-                {
-                    long offset = await this.messageStore.Add(this.Endpoint.Id, message);
-                    this.checkpointer.Propose(message);
-                    Events.AddMessageSuccess(this, offset);
-                }
+                // Check whether this is an interface discovery message
+                string pnpModelId = this.TryGetInterfaceDiscoveryModelId(message);
 
-                this.hasMessagesInQueue.Set();
-                MetricsV0.StoredCountIncrement(this.Endpoint.Id);
+                if (string.IsNullOrEmpty(pnpModelId))
+                {
+                    // Normal message, store and forward as usual
+                    using (MetricsV0.StoreLatency(this.Endpoint.Id))
+                    {
+                        long offset = await this.messageStore.Add(this.Endpoint.Id, message);
+                        this.checkpointer.Propose(message);
+                        Events.AddMessageSuccess(this, offset);
+                    }
+
+                    this.hasMessagesInQueue.Set();
+                    MetricsV0.StoredCountIncrement(this.Endpoint.Id);
+                }
+                else
+                {
+                    // Interface discovery message, this must be sent synchronously
+                    // after the current message queue has been drained
+                    this.messageQueueDrained.Reset();
+                    this.hasMessagesInQueue.Set();
+                    await this.messageQueueDrained.WaitAsync(this.options.BatchTimeout); // TODO: new timeout
+
+                    // Send the discovery message and bypass any retry logic
+                    await this.machine.SendImmediateAsync(message);
+                }
             }
             catch (Exception ex)
             {
@@ -122,6 +145,45 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             }
         }
 
+        string TryGetInterfaceDiscoveryModelId(IMessage message)
+        {
+            try
+            {
+                // Interface discovery is sent as a telemetry message
+                if (message.MessageSource.Match(TelemetryMessageSource.Instance))
+                {
+                    // It also should be using the "modelInformation" schema
+                    if (message.SystemProperties["messageSchema"] == "modelInformation")
+                    {
+                        JToken bodyJToken;
+
+                        // At this point, we know this message is for interface discovery,
+                        // so we need retrieve the model ID
+                        try
+                        {
+                             bodyJToken = JToken.Parse(Encoding.UTF8.GetString(message.Body, 0, message.Body.Length));
+                        }
+                        catch
+                        {
+                            // Re-throw parsing failures and bubble it back up,
+                            // these are caused by bad payloads and the client
+                            // needs to know about them
+                            throw;
+                        }
+
+                        return (string)bodyJToken.SelectToken("modelInformation.capabilityModelId");
+                    }
+                }
+            }
+            catch
+            {
+                // Swallow all other failures we'd run into when not dealing with
+                // an interface discovery message
+            }
+
+            return null;
+        }
+
         async Task SendMessagesPump()
         {
             try
@@ -146,6 +208,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                         {
                             // If store has no messages, then reset the hasMessagesInQueue flag.
                             this.hasMessagesInQueue.Reset();
+
+                            // Signal that the message queue has drained
+                            this.messageQueueDrained.Set();
                         }
                     }
                     catch (Exception ex)

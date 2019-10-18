@@ -125,6 +125,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
         public EndpointExecutorStatus Status =>
             new EndpointExecutorStatus(this.Endpoint.Id, this.state, this.retryAttempts, this.retryPeriod, this.lastFailedRevivalTime, this.unhealthySince, new CheckpointerStatus(this.Checkpointer.Id, this.Checkpointer.Offset, this.Checkpointer.Proposed));
 
+        public async Task SendImmediateAsync(IMessage message)
+        {
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(this.config.Timeout.TotalMilliseconds)))
+            {
+                await this.processor.ProcessAsync(message, cts.Token);
+            }
+        }
+
         public async Task RunAsync(ICommand command)
         {
             using (await this.sync.LockAsync())
