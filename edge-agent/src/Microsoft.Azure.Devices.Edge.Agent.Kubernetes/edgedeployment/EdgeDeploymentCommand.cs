@@ -149,6 +149,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     })
                 .ToList();
 
+            for (int i = 0; i < modulesList.Count; i++)
+            {
+                if (modulesList[i].Name == Core.Constants.EdgeAgentModuleName)
+                {
+                    modulesList.RemoveAt(i);
+                    break;
+                }
+            }
+
             Option<EdgeDeploymentDefinition> activeDeployment;
             try
             {
