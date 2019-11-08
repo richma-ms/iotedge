@@ -177,6 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                         Events.UpdateDeployment(update.To);
 
                         this.deploymentMapper.UpdateDeployment(update.To, update.From);
+                        update.To.Spec.Strategy = new V1DeploymentStrategy(null, "Recreate");
                         return this.client.ReplaceNamespacedDeploymentAsync(update.To, update.To.Metadata.Name, this.deviceNamespace);
                     });
             await Task.WhenAll(updatingTask);
