@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Microsoft.Rest;
+    using Newtonsoft.Json;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
@@ -427,7 +428,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
             public static void UpdateService(V1Service service)
             {
-                Log.LogDebug((int)EventIds.UpdateService, $"Update service object '{service.Metadata.Name}'");
+                Log.LogInformation((int)EventIds.UpdateService, $"Service object '{service.Metadata.Name}'");
+
+                string creationString = JsonConvert.SerializeObject(service);
+                Log.LogInformation((int)EventIds.UpdateService, creationString);
             }
 
             public static void CreateServiceAccount(V1ServiceAccount serviceAccount)
