@@ -123,6 +123,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             // find difference between desired and existing services
             var diff = FindServiceDiff(desired, existing.Items);
 
+            Events.ServiceUpdateCount(diff.Updated.Count);
+
             // Update only those services if configurations have not matched
             var updatingTask = diff.Updated
                 .Select(
@@ -446,6 +448,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 {
                     Log.LogInformation((int)EventIds.UpdateService, "Service object no update result!");
                 }
+            }
+
+            public static void ServiceUpdateCount(int count)
+            {
+                Log.LogInformation((int)EventIds.UpdateService, $"Services needing update: {count}");
             }
 
             public static void PrintService(V1Service service)
