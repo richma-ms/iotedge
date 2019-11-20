@@ -133,7 +133,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                         this.serviceMapper.UpdateService(update.To, update.From);
                         return this.client.ReplaceNamespacedServiceAsync(update.To, update.To.Metadata.Name, this.deviceNamespace);
                     });
-            await Task.WhenAll(updatingTask);
+            var result = await Task.WhenAll(updatingTask);
+            Events.FinishUpdateService(result[0]);
 
             // Delete all existing services that are not in desired list
             var removingTasks = diff.Removed
@@ -428,8 +429,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
             public static void UpdateService(V1Service service)
             {
-                Log.LogInformation((int)EventIds.UpdateService, $"Service object '{service.Metadata.Name}'");
+                Log.LogInformation((int)EventIds.UpdateService, $"Update Service object '{service.Metadata.Name}'");
+                PrintService(service);
+            }
 
+            public static void FinishUpdateService(V1Service service)
+            {
+                Log.LogInformation((int)EventIds.UpdateService, $"Finished Updating Service object '{service.Metadata.Name}'");
+                PrintService(service);
+            }
+
+            public static void PrintService(V1Service service)
+            {
                 string creationString = JsonConvert.SerializeObject(service);
                 Log.LogInformation((int)EventIds.UpdateService, creationString);
             }
