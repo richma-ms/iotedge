@@ -48,29 +48,28 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         ImmutableDictionary<string, IEndpointExecutor> Executors => this.executors;
 
-        public static async Task<Dispatcher> CreateAsync(string id, string iotHubName, ISet<Endpoint> endpoints, IEndpointExecutorFactory factory)
+        public static async Task<Dispatcher> CreateAsync(string id, string iotHubName, ISet<(Endpoint, ImmutableList<uint>)> endpointsWithPriorities, IEndpointExecutorFactory factory)
         {
             Preconditions.CheckNotNull(id);
-            Preconditions.CheckNotNull(endpoints);
+            Preconditions.CheckNotNull(endpointsWithPriorities);
             Preconditions.CheckNotNull(factory);
 
-            IEnumerable<Task<IEndpointExecutor>> tasks = Preconditions.CheckNotNull(endpoints)
-                .Select(endpoint => factory.CreateAsync(endpoint));
+            IEnumerable<Task<IEndpointExecutor>> tasks = endpointsWithPriorities.Select(e => factory.CreateAsync(e.Item1, e.Item2));
             IEndpointExecutor[] executors = await Task.WhenAll(tasks);
             return new Dispatcher(id, iotHubName, executors, factory, new NullCheckpointer());
         }
 
-        public static async Task<Dispatcher> CreateAsync(string id, string iotHubName, ISet<Endpoint> endpoints, IEndpointExecutorFactory factory, ICheckpointStore checkpointStore)
+        public static async Task<Dispatcher> CreateAsync(string id, string iotHubName, ISet<(Endpoint, ImmutableList<uint>)> endpointsWithPriorities, IEndpointExecutorFactory factory, ICheckpointStore checkpointStore)
         {
             Preconditions.CheckNotNull(id);
-            Preconditions.CheckNotNull(endpoints);
+            Preconditions.CheckNotNull(endpointsWithPriorities);
             Preconditions.CheckNotNull(factory);
             Preconditions.CheckNotNull(checkpointStore);
 
             MasterCheckpointer masterCheckpointer = await MasterCheckpointer.CreateAsync(id, checkpointStore);
             var executorFactory = new CheckpointerEndpointExecutorFactory(id, factory, masterCheckpointer);
 
-            IEnumerable<Task<IEndpointExecutor>> tasks = endpoints.Select(endpoint => executorFactory.CreateAsync(endpoint));
+            IEnumerable<Task<IEndpointExecutor>> tasks = endpointsWithPriorities.Select(e => factory.CreateAsync(e.Item1, e.Item2));
             IEndpointExecutor[] executors = await Task.WhenAll(tasks);
             return new Dispatcher(id, iotHubName, executors, executorFactory, masterCheckpointer);
         }
@@ -284,22 +283,22 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 this.checkpointerFactory = Preconditions.CheckNotNull(checkpointerFactory);
             }
 
-            public async Task<IEndpointExecutor> CreateAsync(Endpoint endpoint)
+            public async Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, ImmutableList<uint> priorities)
             {
                 string id = RoutingIdBuilder.Parse(this.idPrefix).Map(prefixTemplate => new RoutingIdBuilder(prefixTemplate.IotHubName, prefixTemplate.RouterNumber, Option.Some(endpoint.Id)).GetId()).GetOrElse(endpoint.Id);
                 ICheckpointer checkpointer = await this.checkpointerFactory.CreateAsync(id);
-                IEndpointExecutor executor = await this.executorFactory.CreateAsync(endpoint, checkpointer);
+                IEndpointExecutor executor = await this.executorFactory.CreateAsync(endpoint, priorities, checkpointer);
                 return executor;
             }
 
-            public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, ICheckpointer checkpointer)
+            public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, ImmutableList<uint> priorities, ICheckpointer checkpointer)
             {
-                return this.executorFactory.CreateAsync(endpoint, checkpointer);
+                return this.executorFactory.CreateAsync(endpoint, priorities, checkpointer);
             }
 
-            public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, ICheckpointer checkpointer, EndpointExecutorConfig endpointExecutorConfig)
+            public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, ImmutableList<uint> priorities, ICheckpointer checkpointer, EndpointExecutorConfig endpointExecutorConfig)
             {
-                return this.executorFactory.CreateAsync(endpoint, checkpointer, endpointExecutorConfig);
+                return this.executorFactory.CreateAsync(endpoint, priorities, checkpointer, endpointExecutorConfig);
             }
         }
 

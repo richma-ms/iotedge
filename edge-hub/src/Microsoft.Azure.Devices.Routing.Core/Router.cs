@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             Preconditions.CheckNotNull(executorFactory);
 
             var evaluator = new Evaluator(config);
-            Dispatcher dispatcher = await Dispatcher.CreateAsync(id, iotHubName, GetEndpoints(config), executorFactory);
+            Dispatcher dispatcher = await Dispatcher.CreateAsync(id, iotHubName, GetEndpointWithPriority(config), executorFactory);
             return new Router(id, iotHubName, evaluator, dispatcher);
         }
 
@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             Preconditions.CheckNotNull(checkpointStore);
 
             var evaluator = new Evaluator(config);
-            Dispatcher dispatcher = await Dispatcher.CreateAsync(id, iotHubName, GetEndpoints(config), executorFactory, checkpointStore);
+            Dispatcher dispatcher = await Dispatcher.CreateAsync(id, iotHubName, GetEndpointWithPriority(config), executorFactory, checkpointStore);
             return new Router(id, iotHubName, evaluator, dispatcher);
         }
 
@@ -118,6 +118,10 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 ImmutableDictionary<string, Route> snapshot = this.routes;
                 this.routes.Value = snapshot.SetItem(route.Id, route);
                 this.evaluator.SetRoute(route);
+
+                // TODO: Accumulate priorities here
+                var priorities = GetPrioritiesForEndpoint(route.Endpoint, snapshot.Values);
+
                 await this.dispatcher.SetEndpoint(route.Endpoint);
             }
         }
@@ -181,10 +185,26 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
         }
 
-        static ISet<Endpoint> GetEndpoints(RouterConfig config)
+        static ImmutableList<uint> GetPrioritiesForEndpoint(Endpoint endpoint, IEnumerable<Route> routes)
         {
-            var endpoints = new HashSet<Endpoint>(config.Routes.Select(r => r.Endpoint));
-            config.Fallback.ForEach(f => endpoints.Add(f.Endpoint));
+            var priorities = new List<uint>();
+            IEnumerable<Route> routesForEndpoint = routes.Where(r => r.Endpoint == endpoint);
+
+            foreach (Route r in routesForEndpoint)
+            {
+                priorities.Add(r.Priority);
+            }
+
+            return priorities.ToImmutableList();
+        }
+
+        static ISet<(Endpoint, ImmutableList<uint>)> GetEndpointWithPriority(RouterConfig config)
+        {
+            var endpoints = new HashSet<(Endpoint, ImmutableList<uint>)>(config.Endpoints.Select(e => (e, GetPrioritiesForEndpoint(e, config.Routes))));
+
+            var fallbackPriority = new List<uint>();
+            fallbackPriority.Add(RouteFactory.DefaultPriority);
+            config.Fallback.ForEach(f => endpoints.Add((f.Endpoint, fallbackPriority.ToImmutableList())));
             return endpoints;
         }
 

@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -24,12 +25,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         readonly Task sendMessageTask;
         readonly AsyncManualResetEvent hasMessagesInQueue = new AsyncManualResetEvent(true);
         readonly ICheckpointer checkpointer;
+        readonly ImmutableList<uint> priorities;
         readonly AsyncEndpointExecutorOptions options;
         readonly EndpointExecutorFsm machine;
         readonly CancellationTokenSource cts = new CancellationTokenSource();
 
         public StoringAsyncEndpointExecutor(
             Endpoint endpoint,
+            ImmutableList<uint> priorities,
             ICheckpointer checkpointer,
             EndpointExecutorConfig config,
             AsyncEndpointExecutorOptions options,
@@ -37,6 +40,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         {
             Preconditions.CheckNotNull(endpoint);
             Preconditions.CheckNotNull(config);
+            this.priorities = Preconditions.CheckNotNull(priorities);
+            Preconditions.CheckArgument(!priorities.IsEmpty);
             this.checkpointer = Preconditions.CheckNotNull(checkpointer);
             this.options = Preconditions.CheckNotNull(options);
             this.machine = new EndpointExecutorFsm(endpoint, checkpointer, config);
