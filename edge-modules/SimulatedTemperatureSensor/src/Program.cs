@@ -82,6 +82,7 @@ namespace SimulatedTemperatureSensor
                 DefaultTransientRetryStrategy);
             await moduleClient.OpenAsync();
             await moduleClient.SetMethodHandlerAsync("reset", ResetMethod, null);
+            await moduleClient.SetMethodHandlerAsync("ReturnPayload", ReturnPayloadMethod, null);
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
 
@@ -161,6 +162,13 @@ namespace SimulatedTemperatureSensor
             Console.WriteLine("Received direct method call to reset temperature sensor...");
             Reset.Set(true);
             var response = new MethodResponse((int)HttpStatusCode.OK);
+            return Task.FromResult(response);
+        }
+
+        static Task<MethodResponse> ReturnPayloadMethod(MethodRequest methodRequest, object userContext)
+        {
+            Console.WriteLine("### ReturnPayload received ###");
+            var response = new MethodResponse(Encoding.UTF8.GetBytes("Test payload"), (int)HttpStatusCode.OK);
             return Task.FromResult(response);
         }
 
