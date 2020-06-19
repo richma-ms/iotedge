@@ -168,7 +168,7 @@ namespace SimulatedTemperatureSensor
         static Task<MethodResponse> ReturnPayloadMethod(MethodRequest methodRequest, object userContext)
         {
             Console.WriteLine("### ReturnPayload received ###");
-            var response = new MethodResponse(Encoding.UTF8.GetBytes("Test payload"), (int)HttpStatusCode.OK);
+            var response = new MethodResponse(Encoding.UTF8.GetBytes("{\"result\":\"ok\"}"), (int)HttpStatusCode.OK);
             return Task.FromResult(response);
         }
 
