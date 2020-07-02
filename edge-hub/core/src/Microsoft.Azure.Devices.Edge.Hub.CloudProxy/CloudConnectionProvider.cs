@@ -236,6 +236,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     .GetValue(settings);
             Events.SetAuthChain(authChainActual);
 
+            settings.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => { return true; };
+
             return new ITransportSettings[] { settings };
         }
 
