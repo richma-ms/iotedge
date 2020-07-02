@@ -227,6 +227,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             proxy.ForEach(p => settings.Proxy = p);
 
             // Set the auth chain via Reflection
+            Events.SettingAuthChain(authChain);
             settings.GetType()
                     .GetProperty("AuthenticationChain", BindingFlags.NonPublic | BindingFlags.Instance)
                     .SetValue(settings, authChain);
@@ -247,6 +248,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             proxy.ForEach(p => settings.Proxy = p);
 
             // Set the auth chain via Reflection
+            Events.SettingAuthChain(authChain);
             settings.GetType()
                     .GetProperty("AuthenticationChain", BindingFlags.NonPublic | BindingFlags.Instance)
                     .SetValue(settings, authChain);
@@ -327,9 +329,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogDebug((int)EventIds.ServiceIdentityNotFound, $"Creating cloud connection for client {identity.Id}. Client identity is not in device scope, attempting to use client credentials.");
             }
 
+            public static void SettingAuthChain(string authChain)
+            {
+                Log.LogInformation((int)EventIds.SetAuthChain, $"### Setting AuthChain on transport: {authChain}");
+            }
             public static void SetAuthChain(string authChain)
             {
-                Log.LogDebug((int)EventIds.SetAuthChain, $"Setting AuthChain on transport: {authChain}");
+                Log.LogInformation((int)EventIds.SetAuthChain, $"### Set AuthChain on transport: {authChain}");
             }
         }
     }
